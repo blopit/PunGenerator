@@ -13,16 +13,16 @@ class word:
         self.name = name
         self.score = 0
 
-current = "SOAK"
+current = "cabin"
 compre = False
 
 def getFreq(w):
-    #if w not in freqlist:
-    #    return 0
+    if w not in freqlist:
+        return 0.0
     try:
-        return (10000-freqlist.index(w))/8000
+        return 0.35*(10000.0-freqlist.index(w))/10000.0
     except:
-        return 0
+        return 0.0
 
 def main():
 
@@ -54,7 +54,7 @@ def main():
             try:
                 grps = re.search(find, l)
                 ls = ''.join([i for i in grps.group(1).lower() if not i.isdigit()]).replace("(","").replace(")","")
-                if ls != "":
+                if ls != "" and ls != cur:
                     s = grps.group(2).split(" ")
                     w = word(ls,s)
                     map.append(w)
@@ -64,6 +64,9 @@ def main():
     print c_list
 
     per = wordCompare(c_list,c_list)
+    if per == 0:
+        print "WORD NOT FOUND"
+        exit(0)
 
     for m in map:
         wscore = wordCompare(c_list,m.list)/per
@@ -72,13 +75,17 @@ def main():
             retlist.append(m)
 
     retlist.sort(key=lambda x: x.score+getFreq(x.name), reverse=True)
+    del retlist[30:]
+
     for m in retlist:
-        print m.name + " -> " + "{0:.0f}%".format(100*wordCompare(c_list,m.list)/per)
+        print m.name + " -> " + "{0:.0f}%".format(100*m.score)
 
 
 def getPoints(l,w2,idd):
     L = l.strip()
     W = w2[idd].strip()
+
+    #print L,W
     if L == W:
         return 1.00
     elif ''.join([i for i in L if not i.isdigit()]) == ''.join([i for i in W if not i.isdigit()]):
@@ -89,43 +96,37 @@ def getPoints(l,w2,idd):
 
 def wordCompare(word1,word2):
     maxstrikes = 2
-    p1 = 0
-    p2 = 0
+    p = []
     ln1 = len(word1)
     ln2 = len(word2)
     strikes = 0
+    p.append(0)
 
-    idx = 0
-    for l in word1:
-        if idx > ln2-1:
-            break
-        gp = getPoints(l,word2,idx)
-        if gp == 0:
-            strikes += 1
-            if strikes == maxstrikes:
-                return 0
-        else:
-            strikes = 0
-        p1 += gp
-        idx += 1
+    for j in range(1-ln2,ln2-ln1+1):
+        idx = 0
+        pnts = 0
+        strikes = 0
+        for l in word1:
+            id = j+idx
+            if id > ln2-1:
+                break
+            if id < 0:
+                idx += 1
+                continue
+            gp = getPoints(l,word2,id)
 
-    idx = 0
-    strikes = 0
-    for l in word1:
-        id = ln2-ln1+idx
-        if id > ln2 or id < 0:
-            break
-        gp = getPoints(l,word2,id)
-        if gp == 0:
-            strikes += 1
-            if strikes == maxstrikes:
-                return 0
-        else:
-            strikes = 0
-        p2 += gp
-        idx += 1
+            if gp == 0.0:
+                strikes += 1
+                if strikes == maxstrikes:
+                    break
+            else:
+                strikes = 0
 
-    return max(p1,p2)
+            pnts += gp
+            idx += 1
+        p.append(pnts)
+
+    return max(p)
 
 if __name__ == "__main__":
     main()
