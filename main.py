@@ -13,8 +13,9 @@ class word:
         self.name = name
         self.score = 0
 
-current = "cabin"
+current = "garage"
 compre = False
+amount = 50
 
 def getFreq(w):
     if w not in freqlist:
@@ -75,7 +76,7 @@ def main():
             retlist.append(m)
 
     retlist.sort(key=lambda x: x.score+getFreq(x.name), reverse=True)
-    del retlist[30:]
+    del retlist[amount:]
 
     for m in retlist:
         print m.name + " -> " + "{0:.0f}%".format(100*m.score)
@@ -104,13 +105,11 @@ def wordCompare(word1,word2):
 
     for j in range(1-ln2,ln2-ln1+1):
         idx = 0
-        pnts = 0
+        pnts = 0.0
         strikes = 0
         for l in word1:
             id = j+idx
-            if id > ln2-1:
-                break
-            if id < 0:
+            if id > ln2-1 or id < 0:
                 idx += 1
                 continue
             gp = getPoints(l,word2,id)
