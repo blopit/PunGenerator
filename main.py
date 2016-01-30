@@ -1,10 +1,13 @@
 __author__ = 'shrenilpatel'
 import re
+import itertools
+from collections import Counter
 
 map = []
-
+seen = []
+seen_dict = {}
 find = re.compile(r"^([\S]+)\s+(.+)$")
-
+wsplit = re.compile(r"((?:te)|(?:ce)|(?:[BCDFGHJKLMNPQRSTVWXZbcdfghjklmnpqrstvwxz]*))((?:[AEIOUYaeiouy]*))")
 freqlist = []
 
 class word:
@@ -13,7 +16,7 @@ class word:
         self.name = name
         self.score = 0
 
-current = "garage"
+current = "kylo"
 compre = False
 amount = 50
 
@@ -24,6 +27,58 @@ def getFreq(w):
         return 0.35*(10000.0-freqlist.index(w))/10000.0
     except:
         return 0.0
+
+def findSeen(l):
+    if l in seen_dict:
+        return seen_dict[l]
+    else:
+        return "#"
+
+def wordGetPhon(w):
+    sidx = 0
+    sn = []
+    ln = []
+    for (const, vowel) in re.findall(wsplit, w):
+        if sidx == 0 and const == "":
+            sidx = -1
+        elif const != "":
+            sn.append(const)
+        if vowel != "":
+            sn.append(vowel)
+        sidx += 2
+
+    print sn
+    for s in sn:
+        ln.append(findSeen(s))
+
+    return ln
+
+def wordAssign(w,nlist):
+    sidx = 0;
+    for (const, vowel) in re.findall(wsplit, w):
+        if sidx == 0 and const == "":
+            sidx = -1
+        elif const != "":
+            seen.append((const, nlist[sidx]))
+        if vowel != "":
+            seen.append((vowel, nlist[sidx+1]))
+        sidx += 2
+
+def wordSplit(w,list):
+    nlist = []
+    prevConst = False
+    for l in list:
+        if l[:1] != 'A' and l[:1] != 'E' and l[:2] != 'ER' and l[:1] != 'I' and l[:1] != 'O' and l[:1] != 'U' and l[:1] != 'Y':
+            if prevConst == True:
+                nlist[len(nlist)-1] = nlist[len(nlist)-1]+l
+            else:
+                prevConst = True
+                nlist.append(l)
+        else:
+            prevConst = False
+            nlist.append(l)
+
+    wordAssign(w,nlist)
 
 def main():
 
@@ -58,11 +113,31 @@ def main():
                 if ls != "" and ls != cur:
                     s = grps.group(2).split(" ")
                     w = word(ls,s)
+                    wordSplit(ls,s)
+
                     map.append(w)
             except:
                 pass
 
-    print c_list
+
+    if len(c_list) == 0:
+        print "unknown word ... guessing"
+        set_seen = Counter(seen)
+        s = set_seen.most_common()
+
+        for x in s:
+            key = x[0][0]
+            if key not in seen_dict:
+                seen_dict[key] = x[0][1]
+
+        cl = wordGetPhon(cur)
+        for l in cl:
+            if l[:1] != 'A' and l[:1] != 'E' and l[:2] != 'ER' and l[:1] != 'I' and l[:1] != 'O' and l[:1] != 'U' and l[:1] != 'Y':
+                for c in l:
+                    c_list.append(c)
+            else:
+                c_list.append(l)
+        print cur,c_list
 
     per = wordCompare(c_list,c_list)
     if per == 0:
@@ -70,8 +145,8 @@ def main():
         exit(0)
 
     for m in map:
-        wscore = wordCompare(c_list,m.list)/per
-        if wscore >= 0.5:
+        wscore = max(wordCompare(c_list,m.list),wordCompare(m.list,c_list))/per
+        if wscore >= 0.2:
             m.score = wscore
             retlist.append(m)
 
@@ -86,7 +161,6 @@ def getPoints(l,w2,idd):
     L = l.strip()
     W = w2[idd].strip()
 
-    #print L,W
     if L == W:
         return 1.00
     elif ''.join([i for i in L if not i.isdigit()]) == ''.join([i for i in W if not i.isdigit()]):
