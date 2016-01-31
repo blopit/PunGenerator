@@ -16,7 +16,7 @@ class word:
         self.name = name
         self.score = 0
 
-current = "kylo"
+current = "FiftyShades"
 compre = False
 amount = 50
 
@@ -24,7 +24,7 @@ def getFreq(w):
     if w not in freqlist:
         return 0.0
     try:
-        return 0.35*(10000.0-freqlist.index(w))/10000.0
+        return 0.35 * (10000.0-freqlist.index(w))/10000.0
     except:
         return 0.0
 
@@ -131,10 +131,36 @@ def main():
                 seen_dict[key] = x[0][1]
 
         cl = wordGetPhon(cur)
+        pH = False
+        pJ = False
+        pS = False
         for l in cl:
             if l[:1] != 'A' and l[:1] != 'E' and l[:2] != 'ER' and l[:1] != 'I' and l[:1] != 'O' and l[:1] != 'U' and l[:1] != 'Y':
+
                 for c in l:
-                    c_list.append(c)
+                    if c == 'H':
+                        if pH == True:
+                            c_list[len(c_list)-1] = c_list[len(c_list)-1]+c
+                        elif pJ == True:
+                            c_list[len(c_list)-1] = c_list[len(c_list)-1]+c
+                            pJ = False
+                        elif pS == True:
+                            c_list[len(c_list)-1] = c_list[len(c_list)-1]+c
+                            pS = False
+                        else:
+                            pH = True
+                            c_list.append(c)
+                    elif c == 'J':
+                        pJ = True
+                        c_list.append(c)
+                    elif c == 'S':
+                        pS = True
+                        c_list.append(c)
+                    else:
+                        pH = False
+                        pJ = False
+                        pS = False
+                        c_list.append(c)
             else:
                 c_list.append(l)
         print cur,c_list
