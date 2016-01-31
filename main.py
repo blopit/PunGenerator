@@ -16,7 +16,7 @@ class word:
         self.name = name
         self.score = 0
 
-current = "FiftyShades"
+current = "FifthyShades"
 compre = False
 amount = 50
 
@@ -134,6 +134,8 @@ def main():
         pH = False
         pJ = False
         pS = False
+        pC = False
+        pT = False
         for l in cl:
             if l[:1] != 'A' and l[:1] != 'E' and l[:2] != 'ER' and l[:1] != 'I' and l[:1] != 'O' and l[:1] != 'U' and l[:1] != 'Y':
 
@@ -147,6 +149,12 @@ def main():
                         elif pS == True:
                             c_list[len(c_list)-1] = c_list[len(c_list)-1]+c
                             pS = False
+                        elif pC == True:
+                            c_list[len(c_list)-1] = c_list[len(c_list)-1]+c
+                            pC = False
+                        elif pT == True:
+                            c_list[len(c_list)-1] = c_list[len(c_list)-1]+c
+                            pT = False
                         else:
                             pH = True
                             c_list.append(c)
@@ -156,10 +164,18 @@ def main():
                     elif c == 'S':
                         pS = True
                         c_list.append(c)
+                    elif c == 'C':
+                        pC = True
+                        c_list.append(c)
+                    elif c == 'T':
+                        pT = True
+                        c_list.append(c)
                     else:
                         pH = False
                         pJ = False
                         pS = False
+                        pC = False
+                        pT = False
                         c_list.append(c)
             else:
                 c_list.append(l)
