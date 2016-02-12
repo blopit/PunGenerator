@@ -1,26 +1,20 @@
 __author__ = 'shrenilpatel'
 import re
-import itertools
 from collections import Counter
 
-map = []
-seen = []
-seen_dict = {}
+
 find = re.compile(r"^([\S]+)\s+(.+)$")
-wsplit = re.compile(r"((?:te)|(?:ce)|(?:[BCDFGHJKLMNPQRSTVWXZbcdfghjklmnpqrstvwxz]*))((?:[AEIOUYaeiouy]*))")
-freqlist = []
+wsplit = re.compile(r"((?:le)|(?:te)|(?:ce)|(?:[BCDFGHJKLMNPQRSTVWXZbcdfghjklmnpqrstvwxz]*))((?:[AEIOUYaeiouy]*))")
 
 class word:
     def __init__(self, name, lst):
         self.list = lst
         self.name = name
         self.score = 0
+        self.wlist = []
+        self.type = 0
 
-current = "FifthyShades"
-compre = False
-amount = 50
-
-def getFreq(w):
+def getFreq(w,freqlist):
     if w not in freqlist:
         return 0.0
     try:
@@ -28,13 +22,13 @@ def getFreq(w):
     except:
         return 0.0
 
-def findSeen(l):
+def findSeen(l,seen_dict):
     if l in seen_dict:
         return seen_dict[l]
     else:
         return "#"
 
-def wordGetPhon(w):
+def wordGetPhon(w,seen_dict):
     sidx = 0
     sn = []
     ln = []
@@ -49,12 +43,12 @@ def wordGetPhon(w):
 
     print sn
     for s in sn:
-        ln.append(findSeen(s))
+        ln.append(findSeen(s,seen_dict))
 
     return ln
 
-def wordAssign(w,nlist):
-    sidx = 0;
+def wordAssign(w,nlist,seen):
+    sidx = 0
     for (const, vowel) in re.findall(wsplit, w):
         if sidx == 0 and const == "":
             sidx = -1
@@ -64,7 +58,7 @@ def wordAssign(w,nlist):
             seen.append((vowel, nlist[sidx+1]))
         sidx += 2
 
-def wordSplit(w,list):
+def wordSplit(w,list,seen):
     nlist = []
     prevConst = False
     for l in list:
@@ -78,13 +72,19 @@ def wordSplit(w,list):
             prevConst = False
             nlist.append(l)
 
-    wordAssign(w,nlist)
+    wordAssign(w,nlist,seen)
 
-def main():
+def main(current,compre,amount):
 
     c_list = []
     retlist = []
     cur = current.lower()
+    map = []
+    seen = []
+    seen_dict = {}
+    guess = False
+
+    freqlist = []
 
     with open('freq.txt') as f:
         for l in f.read().splitlines():
@@ -113,7 +113,7 @@ def main():
                 if ls != "" and ls != cur:
                     s = grps.group(2).split(" ")
                     w = word(ls,s)
-                    wordSplit(ls,s)
+                    wordSplit(ls,s,seen)
 
                     map.append(w)
             except:
@@ -122,6 +122,7 @@ def main():
 
     if len(c_list) == 0:
         print "unknown word ... guessing"
+        guess = True
         set_seen = Counter(seen)
         s = set_seen.most_common()
 
@@ -130,7 +131,7 @@ def main():
             if key not in seen_dict:
                 seen_dict[key] = x[0][1]
 
-        cl = wordGetPhon(cur)
+        cl = wordGetPhon(cur,seen_dict)
         pH = False
         pJ = False
         pS = False
@@ -181,22 +182,39 @@ def main():
                 c_list.append(l)
         print cur,c_list
 
-    per = wordCompare(c_list,c_list)
+    per = wordCompare(c_list,c_list)[0]
     if per == 0:
-        print "WORD NOT FOUND"
-        exit(0)
+        return {'query':cur, 'amount':amount, 'compre':compre, 'guess':guess,'results':[{'N/A':0}]}
 
     for m in map:
-        wscore = max(wordCompare(c_list,m.list),wordCompare(m.list,c_list))/per
+        wc1 = wordCompare(c_list,m.list)
+        wc2 = wordCompare(m.list,c_list)
+        wscore = 0
+        wlist = []
+        type = 0
+        if wc1 >= wc2:
+            wscore = wc1[0]/per
+            wlist = wc1[1]
+            type = 1
+        else:
+            wscore = wc2[0]/per
+            wlist = wc2[1]
+            type = 2
+
         if wscore >= 0.2:
             m.score = wscore
+            m.wlist = wlist
+            m.type = type
             retlist.append(m)
 
-    retlist.sort(key=lambda x: x.score+getFreq(x.name), reverse=True)
+    retlist.sort(key=lambda x: x.score+getFreq(x.name,freqlist), reverse=True)
     del retlist[amount:]
 
+    d = []
     for m in retlist:
-        print m.name + " -> " + "{0:.0f}%".format(100*m.score)
+        d.append( {m.name : 100*m.score })
+
+    return {'query':cur, 'amount':amount, 'compre':compre, 'guess':guess , 'results':d}
 
 
 def getPoints(l,w2,idd):
@@ -214,20 +232,25 @@ def getPoints(l,w2,idd):
 def wordCompare(word1,word2):
     maxstrikes = 2
     p = []
+    stt = []
     ln1 = len(word1)
     ln2 = len(word2)
     strikes = 0
-    p.append(0)
+    p.append((0,(0,0)))
 
     for j in range(1-ln2,ln2-ln1+1):
         idx = 0
         pnts = 0.0
         strikes = 0
+        start = []
         for l in word1:
             id = j+idx
+
+            start.append(id)
             if id > ln2-1 or id < 0:
                 idx += 1
                 continue
+
             gp = getPoints(l,word2,id)
 
             if gp == 0.0:
@@ -239,9 +262,12 @@ def wordCompare(word1,word2):
 
             pnts += gp
             idx += 1
-        p.append(pnts)
 
-    return max(p)
+        if len(start) != 0:
+            p.append((pnts, (min(start),max(start)) ))
+
+    item = max(p,key=lambda item:item[0])
+    return item
 
 if __name__ == "__main__":
-    main()
+    main("rabble",False,30)
